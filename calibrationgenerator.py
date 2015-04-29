@@ -6,15 +6,15 @@ try:  sendactivity
 except NameError:
     def sendactivity(*args, **kwargs):  pass
     
-#fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/2015-04-slowprobing.txt"
-fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/2015-04-fastprobing.txt"
+fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/2015-04-slowprobing.txt"
+#fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/2015-04-fastprobing.txt"
 
 X0 = (745.0, 746.5, 743.5, 695.0, 693.0, 582.625, 121.493035)  # initial guess
 X0 = (743.60582782689789, 746.50166754871304, 743.46653193215002, 693.44977777514146, 693.54373345096121, 582.74575870510228, 121.21098136397796)
 X0 = (743.60427577698113, 746.49690047566355, 743.46654290854087, 693.46920163003449, 693.54373390841067, 582.74599745793853, 121.21185734841112)
 
 halsampleHz = 1000
-Nmergablegap = 160
+Nmergablegap = 160  # when finding samples in contact
 
 def procforward(j0, j1, X):
     a, b, c, d, e, f, h = X
@@ -42,7 +42,11 @@ class ContactSequence:
         self.pts = [ procforward(float(sampleline[0]), float(sampleline[1]), X)  for sampleline in self.samplelines ]
         self.isel = int((len(self.samplelines)+0.5)/2)  # selected point to use from the direction
     def guessisel(self, mx, my):
-        self.isel = min(((x - mx)**2 + (y - my)**2, i)  for i, (x, y) in enumerate(self.pts))[1]
+        dseq = [((x - mx)**2 + (y - my)**2, i)  for i, (x, y) in enumerate(self.pts)]
+        if dseq[-1] > dseq[-2]:  # guess whether it's an inner or outer probe
+            self.isel = min(dseq)[1]
+        else:
+            self.isel = max(dseq)[1]
     def getselj0(self):
         return float(self.samplelines[self.isel][0])
     def getselj1(self):
@@ -87,6 +91,10 @@ midy = sum(cs.pts[cs.isel][1]  for cs in contactsequences)/len(contactsequences)
 print([ contactsequence.isel  for contactsequence in contactsequences ])
 [ contactsequence.guessisel(midx, midy)  for contactsequence in contactsequences ]
 print([ contactsequence.isel  for contactsequence in contactsequences ])
+#for cs in contactsequences:
+#    print(cs.isel, len(cs.pts), [sqrt((x - midx)**2 + (y - midy)**2)  for x, y in cs.pts])
+    
+
 
 for cs in contactsequences:  
     cs.dmid = sqrt((cs.pts[cs.isel][0] - midx)**2 + (cs.pts[cs.isel][1] - midy)**2)
