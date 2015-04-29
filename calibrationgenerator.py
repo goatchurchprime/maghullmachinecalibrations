@@ -118,6 +118,11 @@ def radsd(C, pts):
     sumdsqs = sum(dsqs)
     return sumdls/n, sqrt(max(0, sumdsqs*n - sumdls**2))/(n-1)
 
+def radrg(C, pts):
+    cx, cy = C
+    dls = [ sqrt((cx - x)**2 + (cy - y)**2)  for x, y in pts ]
+    return min(dls), max(dls)
+
 def BestCentre(pts):
     cx0 = sum(x  for x, y in pts)/len(pts)
     cy0 = sum(y  for x, y in pts)/len(pts)
@@ -136,7 +141,8 @@ def PlotCircles(X):
         cx, cy = BestCentre(pts)
         sendactivity("points", points=[(cx, cy)], materialnumber=i)
         rC, sdC = radsd((cx, cy), pts)
-        print("Centre (%f,%f) rad %f sd %f" % (cx, cy, rC, sdC))
+        rmin, rmax = radrg((cx, cy), pts)
+        print("Centre (%f,%f) minrad %f maxrad %f" % (cx, cy, rmin, rmax))
         sendactivity("contours", contours=[[(cx+rC*sin(radians(d/5)), cy+rC*cos(radians(d/5))) for d in range(0,360*5+1)]], materialnumber=1)
 
 # plot with current parameters    
