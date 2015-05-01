@@ -173,3 +173,24 @@ print("error %f for %s" % (fun(X0), repr(X0)))
 print("error %f for %s" % (fun(Xopt), repr(Xopt)))
 PlotCircles(Xopt)
 
+
+# numbers from the original mk6skins.c file, with h back-calculated to match aH
+#X00 = (744.942619, 746.50577, 743.340584, 695.063413, 692.996544, 582.632544, 121.49303499999954)
+#a, b, c, d, e, f, h = X00
+a, b, c, d, e, f, h = Xopt
+
+print("Code to paste into mk6skins.c:\n")
+print("#define DEFAULT_A %.10f" % a)
+print("#define DEFAULT_B %.10f" % b)
+print("#define DEFAULT_C %.10f" % c)
+print("#define DEFAULT_D %.10f" % d)
+print("#define DEFAULT_E %.10f" % e)
+print("#define DEFAULT_F %.10f" % f)
+aB = acos(((a**2)+(c**2)-(b**2))/(2*a*c))
+aC = acos(((a**2)+(b**2)-(c**2))/(2*a*b))
+aH = acos(((f*f)+(e*e)-(h*h))/(2*f*e))
+print("#define DEFAULT_AB %.10f" % aB)
+print("#define DEFAULT_AC %.10f" % aC)
+print("#define DEFAULT_AH %.10f" % aH)
+
+
