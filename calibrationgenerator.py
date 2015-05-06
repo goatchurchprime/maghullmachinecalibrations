@@ -9,15 +9,17 @@ except NameError:
 fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/2015-04-slowprobing.txt"
 #fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/2015-04-fastprobing.txt"
 
-X0 = (745.0, 746.5, 743.5, 695.0, 693.0, 582.625, 121.493035)  # initial guess
-X0 = (743.60582782689789, 746.50166754871304, 743.46653193215002, 693.44977777514146, 693.54373345096121, 582.74575870510228, 121.21098136397796)
-X0 = (743.60427577698113, 746.49690047566355, 743.46654290854087, 693.46920163003449, 693.54373390841067, 582.74599745793853, 121.21185734841112)
+
+X0 = (745.0, 746.5, 743.5, 695.0, 693.0, 582.625, 121.493035, 0, 0)  # initial guess
+X0 = (744.57703517328832, 746.19009986079459, 741.95547170764314, 695.42905812855656, 693.07538973655983, 582.64403220610257, 121.47172501846239, -5.3500253291260549, -0.33991271271317969)
 
 halsampleHz = 1000
 Nmergablegap = 160  # when finding samples in contact
+aXoffset = 0#-0.4837
 
-def procforward(j0, j1, X):
-    a, b, c, d, e, f, h = X
+def procforward(lj0, lj1, X):
+    a, b, c, d, e, f, h, tblx, armx = X
+    j0, j1 = lj0 + tblx, lj1 + armx
     aB = acos(((a**2)+(c**2)-(b**2))/(2*a*c))
     aC = acos(((a**2)+(b**2)-(c**2))/(2*a*b))
     aH = acos(((f*f)+(e*e)-(h*h))/(2*f*e))
@@ -25,7 +27,7 @@ def procforward(j0, j1, X):
     aARM = acos(((c*c)+(e*e)-(j1*j1))/(2*c*e))
     aG = aB-aARM+aH
     aF = atan((f*(sin(aG)))/(a-(f*(cos(aG)))))
-    aX = aTBL-(aC-aF)
+    aX = aTBL-(aC-aF)+aXoffset
     g = sqrt((f*f)+(a*a)-(2*f*a*(cos(aG))))
     x = g*sin(aX)
     y = -g*cos(aX)
@@ -172,12 +174,13 @@ Xopt = tuple(res.x)
 print("error %f for %s" % (fun(X0), repr(X0)))
 print("error %f for %s" % (fun(Xopt), repr(Xopt)))
 PlotCircles(Xopt)
+sendactivity("clearallpoints")
 
 
 # numbers from the original mk6skins.c file, with h back-calculated to match aH
 #X00 = (744.942619, 746.50577, 743.340584, 695.063413, 692.996544, 582.632544, 121.49303499999954)
 #a, b, c, d, e, f, h = X00
-a, b, c, d, e, f, h = Xopt
+a, b, c, d, e, f, h, tblx, armx = Xopt
 
 print("Code to paste into mk6skins.c:\n")
 print("#define DEFAULT_A %.10f" % a)
@@ -186,6 +189,8 @@ print("#define DEFAULT_C %.10f" % c)
 print("#define DEFAULT_D %.10f" % d)
 print("#define DEFAULT_E %.10f" % e)
 print("#define DEFAULT_F %.10f" % f)
+print("#define DEFAULT_TBLX %.10f" % tblx)
+print("#define DEFAULT_ARMX %.10f" % armx)
 aB = acos(((a**2)+(c**2)-(b**2))/(2*a*c))
 aC = acos(((a**2)+(b**2)-(c**2))/(2*a*b))
 aH = acos(((f*f)+(e*e)-(h*h))/(2*f*e))
