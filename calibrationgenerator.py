@@ -2,16 +2,16 @@ from math import sqrt, atan, cos, sin, acos, radians
 import scipy.optimize
 import os, time
 
+# circle sizes = 132.525, 79.69, 17.055
+
 try:  sendactivity
 except NameError:
     def sendactivity(*args, **kwargs):  pass
     
-fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/2015-04-slowprobing.txt"
-#fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/2015-04-fastprobing.txt"
+fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/probing2015-05-22a.txt"
 
 
-X0 = (745.0, 746.5, 743.5, 695.0, 693.0, 582.625, 121.493035, 0, 0)  # initial guess
-X0 = (744.57703517328832, 746.19009986079459, 741.95547170764314, 695.42905812855656, 693.07538973655983, 582.64403220610257, 121.47172501846239, -5.3500253291260549, -0.33991271271317969)
+X0 = (744.57703517328832, 746.19009986079459, 741.95547170764314, 695.42905812855656, 693.07538973655983, 582.64403220610257, 121.47172501846239, 690, 400)
 
 halsampleHz = 1000
 Nmergablegap = 160  # when finding samples in contact
@@ -35,20 +35,28 @@ def procforward(lj0, lj1, X):
 
 
 class ContactSequence:
-    def __init__(self, i, sampleline, nprevgap):
+    def __init__(self, i, sampleline, nprevgap, N):
         self.i = i
         self.samplelines = [ sampleline ]
         self.nprevgap = nprevgap
         self.ninternalgap = 0
+        self.N = N
     def ApplyConversion(self, X):
         self.pts = [ procforward(float(sampleline[0]), float(sampleline[1]), X)  for sampleline in self.samplelines ]
-        self.isel = int((len(self.samplelines)+0.5)/2)  # selected point to use from the direction
     def guessisel(self, mx, my):
         dseq = [((x - mx)**2 + (y - my)**2, i)  for i, (x, y) in enumerate(self.pts)]
-        if dseq[-1] > dseq[-2]:  # guess whether it's an inner or outer probe
+        if len(dseq) == 1:
+            self.isel = 0
+        elif dseq[-1] > dseq[-2]:  # guess whether it's an inner or outer probe
             self.isel = min(dseq)[1]
         else:
             self.isel = max(dseq)[1]
+        self.isel = 0  # SET BACK TO FIRST POINT OF CONTACT
+        if len(self.pts) > 1:
+            self.lng = sum(sqrt((self.pts[i][0]-self.pts[i-1][0])**2 + (self.pts[i][1]-self.pts[i-1][1])**2)  for i in range(1, len(self.pts)))
+        else:
+            self.lng = 0
+        self.vel = self.lng/len(self.pts)
     def getselj0(self):
         return float(self.samplelines[self.isel][0])
     def getselj1(self):
@@ -67,7 +75,7 @@ for i, sampleline in samplelines:
                 contactsequences[-1].ninternalgap += len(gapsequence)
                 contactsequences[-1].samplelines.extend(gapsequence)
             if contactsequences[-1] is None:
-                contactsequences[-1] = ContactSequence(i, sampleline, len(gapsequence))
+                contactsequences[-1] = ContactSequence(i, sampleline, len(gapsequence), len(contactsequences)-1)
             else:
                 contactsequences[-1].samplelines.append(sampleline)
             gapsequence = [ ]
@@ -75,9 +83,11 @@ for i, sampleline in samplelines:
             if contactsequences[-1] is not None:
                 contactsequences.append(None)
             gapsequence.append(sampleline)
-            
+
+
 if contactsequences[-1] is None:
     contactsequences.pop()
+
 timegaps = [cs1.i - cs0.i  for cs0, cs1 in zip(contactsequences, contactsequences[1:])]
 avgtimegap = sum(timegaps)/len(timegaps)
 print("Found %d lines equating to %f minutes" % (len(samplelines), len(samplelines)/halsampleHz/60))
@@ -88,15 +98,19 @@ del samplelines
 
 # allocate the contact sequences to their disks
 [ contactsequence.ApplyConversion(X0)  for contactsequence in contactsequences ]
-midx = sum(cs.pts[cs.isel][0]  for cs in contactsequences)/len(contactsequences)
-midy = sum(cs.pts[cs.isel][1]  for cs in contactsequences)/len(contactsequences)
-print([ contactsequence.isel  for contactsequence in contactsequences ])
+midx = sum(cs.pts[0][0]  for cs in contactsequences)/len(contactsequences)
+midy = sum(cs.pts[0][1]  for cs in contactsequences)/len(contactsequences)
 [ contactsequence.guessisel(midx, midy)  for contactsequence in contactsequences ]
-print([ contactsequence.isel  for contactsequence in contactsequences ])
+#print("iseq of contact sequence", [ contactsequence.isel  for contactsequence in contactsequences ])
 #for cs in contactsequences:
 #    print(cs.isel, len(cs.pts), [sqrt((x - midx)**2 + (y - midy)**2)  for x, y in cs.pts])
-    
 
+print("Thin out the contact sequences of the double hits")    
+print("should project back to find the length of the trajectory before contact to verify")
+print("for sure we have a short resample")
+print([cs.N  for cs in contactsequences])
+print([cs.lng  for cs in contactsequences])
+contactsequences = contactsequences[1::2]
 
 for cs in contactsequences:  
     cs.dmid = sqrt((cs.pts[cs.isel][0] - midx)**2 + (cs.pts[cs.isel][1] - midy)**2)
@@ -111,7 +125,6 @@ for cs in contactsequences:
         i += 1
     contactsequencedisks[i].append(cs)
 
-    
 def radsd(C, pts):
     cx, cy = C
     n = len(pts)
@@ -135,7 +148,15 @@ def BestCentre(pts):
     res = scipy.optimize.minimize(fun=fun, x0=(cx0, cy0), bounds=bnds)
     return tuple(res.x)
         
-def PlotCircles(X):
+
+def ApplyRadialFactor(cx, cy, r, p, radialfactor):
+    vx, vy = p[0] - cx, p[1] - cy
+    vsq = vx**2 + vy**2
+    vlen = sqrt(vsq)
+    vfac = (vlen - r)*radialfactor / r
+    return p[0] + vx*vfac, p[1] + vy*vfac
+        
+def PlotCircles(X, radialfactor):
     for i in range(len(contactsequencedisks)):
         pts = [ procforward(cs.getselj0(), cs.getselj1(), X)  for cs in contactsequencedisks[i]]
         print("Disk %d points %d" % (i, len(contactsequencedisks[i])), end=" ")
@@ -146,13 +167,16 @@ def PlotCircles(X):
         rmin, rmax = radrg((cx, cy), pts)
         print("Centre (%f,%f) minrad %f maxrad %f" % (cx, cy, rmin, rmax))
         sendactivity("contours", contours=[[(cx+rC*sin(radians(d/5)), cy+rC*cos(radians(d/5))) for d in range(0,360*5+1)]], materialnumber=1)
+        if radialfactor:
+            sendactivity("contours", contours=[ [ ApplyRadialFactor(cx, cy, rC, procforward(float(sampleline[0]), float(sampleline[1]), X), radialfactor)  for sampleline in cs.samplelines ]  for cs in contactsequencedisks[i] ])
+            
 
 # plot with current parameters    
 sendactivity("clearalltriangles")
 sendactivity("clearallpoints")
 sendactivity("clearallcontours")
 sendactivity("contours", contours=[cs.pts  for cs in contactsequences])
-PlotCircles(X0)
+PlotCircles(X0, 100)
 
 # now minimize on the main set of parameters
 def fun(X):
@@ -198,4 +222,41 @@ print("#define DEFAULT_AB %.10f" % aB)
 print("#define DEFAULT_AC %.10f" % aC)
 print("#define DEFAULT_AH %.10f" % aH)
 
+
+
+# case for testing against the rule
+def dotsd(v, pts):
+    n = len(pts)
+    ds = [ v[0]*x + v[1]*y  for x, y in pts ]
+    sumdls = sum(ds)
+    sumdsqs = sum(d**2  for d in ds)
+    return sumdls/n, sqrt(max(0, sumdsqs*n - sumdls**2))/(n-1)
+
+def Dvl(v, dv):
+    vx, vy = v[1] + v[0]*dv, -v[0] + v[1]*dv
+    vlen = sqrt(vx**2 + vy**2)
+    return vx/vlen, vy/vlen
+
+
+def BestLine(pts):
+    vx0 = pts[-1][0] - pts[0][0]
+    vy0 = pts[-1][1] - pts[0][1]
+    def fun(dv):
+        return dotsd(Dvl((vx0, vy0), dv), pts)[1]
+    b = 0.5
+    bnds = ((-b,+b),)
+    res = scipy.optimize.minimize(fun=fun, x0=(0,), bounds=bnds)
+    print(res)
+    return Dvl((vx0, vy0), res.x[0])
+
+if 0:
+    X0 = (744.57703517328832, 746.19009986079459, 741.95547170764314, 695.42905812855656, 693.07538973655983, 582.64403220610257, 121.47172501846239, -5.3500253291260549, -0.33991271271317969)
+    pts0 = [ procforward(cs.getselj0(), cs.getselj1(), X0)  for cs in contactsequences ]
+    sendactivity("points", points=pts0, materialnumber=0)
+    for pts in [pts0, pts1, pts2]:
+        vx, vy = BestLine(pts)
+        d, sd = dotsd((vx, vy), pts)
+        print("sd", sd)
+        sendactivity("contours", contours=[[(vx*d-vy*1000, vy*d+vx*1000), (vx*d+vy*1000, vy*d-vx*1000)]])
+        print(vx**2+vy**2)
 
