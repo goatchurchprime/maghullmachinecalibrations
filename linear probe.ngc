@@ -1,0 +1,27 @@
+(MSG,visually find edge start and end coords and safe z. Then input below)
+(common constants)
+G21   (metric)
+#<_Xstart>=-44.4   #<_Ystart>=26.4   #<_dowelrad>=3   #<_safeZ>=70   #<_workZ>=10
+#<_Xend>=173     #<_Yend>  =212      #<_moves>=20
+#<_Xstep>=[[#<_Xend>-#<_Xstart>]/#<_moves>]   #<_counter>=0
+#<_Ystep>=[[#<_Yend>-#<_Ystart>]/#<_moves>]
+#<_Xcoord>=#<_Xstart>   #<_Ycoord>=#<_Ystart>
+
+
+G0 Z #<_safeZ>                          (move to safe z)
+G0 X #<_Xstart> Y #<_Ystart>            (move above start position)
+G1 Z #<_workZ> F300                     (lower to edge level)
+
+O1 while [#<_counter> LT [#<_moves>]] (points on edge)
+  #<_Xcoord>=[#<_Xcoord>+#<_Xstep>]     (new X)
+  #<_Ycoord>=[#<_Ycoord>+#<_Ystep>]     (new X)
+  G1 X #<_Xcoord> Y #<_Ycoord> F500     (move to new point on edge)
+  G38.2 Y [#<_Ycoord>+30]  F25          (move towards edge)
+  G1 X #<_Xcoord> Y #<_Ycoord> F25      (move back to new point)
+  #<_counter>=[#<_counter>+1]           (increment angle) 
+O1 endwhile
+G0 Z #<_safeZ>                          (safe z)
+M2
+
+
+

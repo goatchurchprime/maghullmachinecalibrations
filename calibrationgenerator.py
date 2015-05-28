@@ -147,7 +147,19 @@ def BestCentre(pts):
     bnds = ((cx0-b,cx0+b), (cy0-b,cy0+b))
     res = scipy.optimize.minimize(fun=fun, x0=(cx0, cy0), bounds=bnds)
     return tuple(res.x)
-        
+
+def BestCentreR2(pts, R2):
+    cx0 = sum(x  for x, y in pts)/len(pts)
+    cy0 = sum(y  for x, y in pts)/len(pts)
+    def fun(C):
+        cx, cy = C
+        dss = [ sqrt((cx - x)**2 + (cy - y)**2)  for x, y in pts ]
+        return sum((d - R2)**2  for d in dss)/len(pts)
+    b = 5
+    bnds = ((cx0-b,cx0+b), (cy0-b,cy0+b))
+    res = scipy.optimize.minimize(fun=fun, x0=(cx0, cy0), bounds=bnds)
+    return tuple(res.x)
+
 
 def ApplyRadialFactor(cx, cy, r, p, radialfactor):
     vx, vy = p[0] - cx, p[1] - cy
@@ -183,7 +195,19 @@ def fun(X):
     ptslist = [ [ procforward(cs.getselj0(), cs.getselj1(), X)  for cs in csd ]  for csd in contactsequencedisks ]
     diskcens = [ BestCentre(pts)  for pts in ptslist ]
     rcsdlist = [ radsd(cen, pts)  for cen, pts in zip(diskcens, ptslist) ]
+    
     return sum(sd**2  for r, sd in rcsdlist)
+
+
+# now minimize on the main set of parameters
+R2 = 132.525
+def fun(X):
+    ptsouter = [ procforward(cs.getselj0(), cs.getselj1(), X)  for cs in contactsequencedisks[2] ]
+    diskcen = BestCentreR2(ptsouter, R2)
+    cx, cy = diskcen
+    n = len(ptsouter)
+    distss = [ sqrt((cx - x)**2 + (cy - y)**2)  for x, y in ptsouter ]
+    return sum((d - R2)**2  for d in distss)/n
 
 print("Initial fun to minimize value", fun(X0))
 
@@ -197,7 +221,7 @@ Xopt = tuple(res.x)
 
 print("error %f for %s" % (fun(X0), repr(X0)))
 print("error %f for %s" % (fun(Xopt), repr(Xopt)))
-PlotCircles(Xopt)
+PlotCircles(Xopt, 1)
 sendactivity("clearallpoints")
 
 

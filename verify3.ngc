@@ -1,0 +1,30 @@
+(MSG,visually find disc centre coords #1,#2 and safe z #5. Then input below)
+(common constants)
+#<_Xcenter>=97.1   #<_Ycenter>=103    #<_dowelrad>=3           #<_safeZ>=51(25)
+ #<_big rad>=130   #<_lower work Z>=37(11)
+G21                                                                       (metric)
+(variables)
+#<_Xcoord>=0   #<_Ycoord>=0   #<_theta>=0  #<_working rad>=[#<_big rad>+#<_dowelrad>+2.5]
+;*******************************************************************
+(PROBEOPEN /home/ag/Desktop/verify22 5 15.txt)
+G0 Z #<_safeZ> F500                                                       (move to safe z)
+G0 X [#<_Xcenter>+#<_big rad>+#<_dowelrad>+2.5] Y #<_Ycenter>             (move above start position)
+
+O1 while [#<_theta> LT 361]                                               (points on circle)
+  #<_theta>=[#<_theta>+5]                                                 (increment angle)
+  #<_Xcoord>=[[cos[#<_theta>]*[#<_working rad>]]+#<_Xcenter>]             (calc new start X)
+  #<_Ycoord>=[[sin[#<_theta>]*[#<_working rad>]]+#<_Ycenter>]             (calc new start Y)
+  G1 X #<_Xcoord> Y #<_Ycoord> F700                                       (move to new point)
+  G1 Z #<_lower work Z> F500                                              (lower to disc level)
+  G38.2 X #<_Xcenter> Y #<_Ycenter> F300                                  (move fast towards circle center X#5061 Y#5062)
+  G91 G1 X [cos[#<_theta>]*[.2]] Y [sin[#<_theta>]*[.2]] F100             (relative backaway)
+  G90 G38.2 X #<_Xcenter> Y #<_Ycenter> F3                                (move slow towards circle center)
+  G1 X #<_Xcoord> Y #<_Ycoord> F300                                       (move back to new point)
+  ;(LOG,G1 X#5061 Y#5062)                                                 (log probed coords)
+O1 endwhile
+G0 Z #<_safeZ>                                                          (safe z)
+(PROBECLOSE)
+M2
+(disc dia       probe dia       probed dia       probed rad )
+(259.05     +       6)    /2  =   265.05    /2 =   132.525)
+

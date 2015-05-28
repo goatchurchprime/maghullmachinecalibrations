@@ -1,0 +1,71 @@
+(MSG,visually find disc centre coords #1,#2 and safe z #5. Then input below)
+(common constants)
+#<_Xcenter>=84.9   #<_Ycenter>=103.5    #<_dowelrad>=3           #<_safeZ>=51   (25)
+#<_smallrad>=75  #<_big rad>=130    #<_upper work Z>=42.5  (17)   #<_lower work Z>=37    (11)
+#<_holerad>=20  
+
+G21                                                                       (metric)
+(variables)
+#<_Xcoord>=0   #<_Ycoord>=0   #<_theta>=0  #<_working rad>=[#<_smallrad>+#<_dowelrad>+5]
+;*******************************************************************
+(PROBEOPEN /home/ag/Desktop/probelogging 9 2 15.txt)
+G0 Z #<_safeZ> F500                                                       (move to safe z)
+G0 X [#<_Xcenter>+#<_smallrad>+#<_dowelrad>+5] Y #<_Ycenter>              (move above start position)
+
+O1 while [#<_theta> LT 361]                                               (points on circle)
+  #<_theta>=[#<_theta>+5]                                                 (increment angle)
+  #<_Xcoord>=[[cos[#<_theta>]*[#<_working rad>]]+#<_Xcenter>]             (calc new start X)
+  #<_Ycoord>=[[sin[#<_theta>]*[#<_working rad>]]+#<_Ycenter>]             (calc new start Y)
+  G1 X #<_Xcoord> Y #<_Ycoord> F500                                       (move to new point)
+  G1 Z #<_upper work Z> F500                                              (lower to disc level)
+  G38.2 X #<_Xcenter> Y #<_Ycenter> F300                                  (move fast towards circle center X#5061 Y#5062)
+  G91 G1 X [cos[#<_theta>]*[.2]] Y [sin[#<_theta>]*[.2]] F100             (relative backaway)
+  G90 G38.2 X #<_Xcenter> Y #<_Ycenter> F3                                (move slow towards circle center)
+  G1 X #<_Xcoord> Y #<_Ycoord> F300                                       (move back to new point)
+O1 endwhile
+G0 Z #<_safeZ>                                                          (safe z)
+;*******************************************************************
+(variables)
+#<_Xcoord>=0   #<_Ycoord>=0   #<_theta>=0  #<_working rad>=[#<_big rad>+#<_dowelrad>+2.5]
+G0 Z #<_safeZ> F500                                                       (move to safe z)
+G0 X [#<_Xcenter>+#<_big rad>+#<_dowelrad>+5] Y #<_Ycenter>               (move above start position)
+
+O2 while [#<_theta> LT 361]                                               (points on circle)
+  #<_theta>=[#<_theta>+5]                                                 (increment angle)
+  #<_Xcoord>=[[cos[#<_theta>]*[#<_working rad>]]+#<_Xcenter>]             (new X)
+  #<_Ycoord>=[[sin[#<_theta>]*[#<_working rad>]]+#<_Ycenter>]             (new Y)
+  G1 X #<_Xcoord> Y #<_Ycoord> F500                                       (move to new point)
+  G1 Z #<_lower work Z> F500                                              (lower to disc level)
+  G38.2 X #<_Xcenter> Y #<_Ycenter> F300                                  (move fast towards circle center)
+  G91 G1 X [cos[#<_theta>]*[.2]] Y [sin[#<_theta>]*[.2]] F100             (relative backaway)
+  G90 G38.2 X #<_Xcenter> Y #<_Ycenter> F3                                (move slow towards circle center)
+  G1 X #<_Xcoord> Y #<_Ycoord> F300                                       (move back to new point)
+  ;(LOG,G1 X#5061 Y#5062)                                                 (log probed coords)
+O2 endwhile  
+G0 Z #<_safeZ>                                                            (safe z)
+;*******************************************************************
+(variables)
+#<_Xsmall>=0   #<_Ysmall>=0   #<_theta>=0  #<_inner rad>=[#<_holerad>-#<_dowelrad>-2.5]
+#<_Xbig>=0     #<_Ybig>=0                  #<_outer rad>=[#<_holerad>+20]
+
+G0 Z #<_safeZ> F500                                                       (move to safe z)
+G0 X #<_Xcenter>   Y #<_Ycenter>                                          (move above start position)
+O3 while [#<_theta> LT 361]                                               (points on circle)
+  #<_theta>=[#<_theta>+5]                                                 (increment angle)
+  #<_Xsmall>=[[cos[#<_theta>]*[#<_inner rad>]]+#<_Xcenter>]               (new X)
+  #<_Ysmall>=[[sin[#<_theta>]*[#<_inner rad>]]+#<_Ycenter>]               (new Y)
+  #<_Xbig>  =[[cos[#<_theta>]*[#<_outer rad>]]+#<_Xcenter>]               (new X)
+  #<_Ybig>  =[[sin[#<_theta>]*[#<_outer rad>]]+#<_Ycenter>]               (new Y)
+  G1 X #<_Xsmall> Y #<_Ysmall> F500                                       (move to start point)
+  G1 Z #<_upper work Z> F500                                              (lower to disc level)
+  G38.2 X #<_Xbig> Y #<_Ybig> F300                                        (move away fast from circle center)
+  G91 G1 X [cos[#<_theta>]*[-.2]] Y [sin[#<_theta>]*[-.2]] F100           (relative backaway)
+  G90 G38.2 X #<_Xbig> Y #<_Ybig> F3                                      (move away slow from circle center)
+  G1 X #<_Xsmall> Y #<_Ysmall> F300                                        (move back to start point)
+
+  ;(LOG,G1 X#5061 Y#5062)                                                 (log probed coords)
+O3 endwhile  
+G0 Z #<_safeZ>                                                            (safe z)
+
+(PROBECLOSE)
+M2
