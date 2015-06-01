@@ -75,34 +75,79 @@ def BestCentreR2(pts, R2):
     bnds = ((cx0-b,cx0+b), (cy0-b,cy0+b))
     res = scipy.optimize.minimize(fun=centrequality, x0=(cx0, cy0), bounds=bnds)
     return tuple(res.x), centrequality(res.x)
-    
-def OptimizeXagainstR2(X0, outerdisksamples, R2, method):
+
+def BestLineNormal(pts):
+    sx = sum(x  for x, y in pts)
+    sy = sum(y  for x, y in pts)
+    sx2 = sum(x**2  for x, y in pts)
+    sxy = sum(x*y  for x, y in pts)
+    m = (sxy*len(pts) - sx*sy) / (sx2*len(pts) - sx**2)
+    c = (sy - m*sx)/len(pts)
+    nveclen = sqrt(m**2 + 1)
+    return (m/nveclen, -1/nveclen)
+
+fac745 = 0.1
+
+def OptimizeXagainstR2(X0, outerdisksamples, R2, linesamples, method):
     tstart = time.time()
     bnds = [ (x-5,x+5)  for x in X0 ]
     def fun1(X):
         ptsouter = [ procforward(j0, j1, X)  for j0, j1 in outerdisksamples ]
         return BestCentreR2(ptsouter, R2)
-    def fun(X):  return fun1(X)[1]
-    res = scipy.optimize.minimize(fun=fun, x0=X0, bounds=bnds, method=method, options={"xtol":0.00000001, "ftol":0.00000001})
+    def fun(X):
+        var = 0
+        if linearsamples:
+            linepts = [ procforward(j0, j1, X)  for j0, j1 in linearsamples ]
+            nvec = BestLineNormal(linepts)
+            ds = [ nvec[0]*x + nvec[1]*y  for x, y in linepts ]
+            var = (sum(d**2  for d in ds) - sum(ds)**2/len(ds))/len(ds)
+        var745 = (X[0]-745)**2 + (X[1]-745)**2 + (X[2]-745)**2
+        return fun1(X)[1] + var + var745*fac745
+    res = scipy.optimize.minimize(fun=fun, x0=X0, bounds=bnds, method=method, options={"xtol":0.00000001, "ftol":0.00000001, "Dmaxiter":9000})
     print("Elapsed seconds", time.time() - tstart)
-    #print(res)
+    print(res)
     Xopt = tuple(res.x)
     return Xopt, fun1(Xopt)
 
-def PlotCircularity(pts, matnumber=0):
-    c = BestCentreR2(pts, R2)[0]
-    ds = [ sqrt((p[0] - c[0])**2 + (p[1] - c[1])**2)  for p in pts ]
+    
+# this does the plotting and measuring after optimization stuff
+def OptMeth(X0, meth):
+    k0 = OptimizeXagainstR2(X0, outerdisksamples, R2, linearsamples, meth)
+    X = k0[0]
+    ptsouter0 = [ procforward(j0, j1, X)  for j0, j1 in outerdisksamples ]
+    c = BestCentreR2(ptsouter0, R2)[0]
+    ds = [ sqrt((p[0] - c[0])**2 + (p[1] - c[1])**2)  for p in ptsouter0 ]
     print("Centre (%f,%f) minrad %f maxrad %f" % (c[0], c[1], min(ds), max(ds)))
-    sendactivity("contours", contours=[[(c[0]+R2*sin(radians(d/5)), c[1]+R2*cos(radians(d/5))) for d in range(0,360*5+1)]], materialnumber=matnumber)
-
-
-sendactivity("clearallpoints")
-
+    matnumber = len(meth)%4
+    sendactivity("contours", contours=[[(R2*sin(radians(d/5)), R2*cos(radians(d/5))) for d in range(0,360*5+1)]], materialnumber=matnumber)
+    sendactivity("points", points=[(x-c[0], y-c[1])  for x, y in ptsouter0], materialnumber=matnumber)
+    
+    linepts = [ procforward(j0, j1, X)  for j0, j1 in linearsamples ]
+    nvec = BestLineNormal(linepts)
+    nvecdots = [ nvec[0]*x + nvec[1]*y  for x, y in linepts ]
+    print("linear width is ", max(nvecdots) - min(nvecdots))
+    sendactivity("points", points=[(x-c[0], y-c[1])  for x, y in linepts], materialnumber=matnumber)
+    nvc = sum(nvecdots)/len(nvecdots)
+    sendactivity("contours", contours=[[(nvec[0]*nvc + nvec[1]*d - c[0], nvec[1]*nvc - nvec[0]*d - c[1])  for d in [-1000,1000]]], materialnumber=matnumber)
+    
+    # plot the constant joint lines
+    j0s = [j0  for j0, j1 in outerdisksamples]
+    j1s = [j1  for j0, j1 in outerdisksamples]
+    j0min, j0max = min(j0s), max(j0s)
+    j1min, j1max = min(j1s), max(j1s)
+    nstripes = 10
+    sendactivity("contours", contours=[[(p[0]-c[0], p[1]-c[1])  for p in [ procforward(j0min + (j/nstripes)*(j0max - j0min), j1min + (i/100)*(j1max - j1min), X)  for i in range(100) ]]  for j in range(nstripes)], materialnumber=matnumber)
+    sendactivity("contours", contours=[[(p[0]-c[0], p[1]-c[1])  for p in [ procforward(j0min + (j/100)*(j0max - j0min), j1min + (i/nstripes)*(j1max - j1min), X)  for j in range(100) ]]  for i in range(nstripes)], materialnumber=matnumber)
+    
+    return X
+    
+    
 # main code
 
 # parse out the contacts from the halsampler file
 samplelines, contactsequences = GetContactSequence(fname)
 contactsequences = contactsequences[1::2]   # thin out double values
+
 contactpts = [ procforward(float(samplelines[i0][0]), float(samplelines[i0][1]), X0)  for i0, i1 in contactsequences ]
 
 # select the outer disk (and the outerdisksamples containing the joint values)
@@ -116,81 +161,21 @@ sendactivity("points", points=outerdisksamples, materialnumber=2)
 # fit the outer disk with current estimate
 R2 = 132.525
 c, q = BestCentreR2(outerdiskpts, R2)
+print("minimizing from", q)
 sendactivity("contours", contours=[[(c[0]+R2*sin(radians(d/5)), c[1]+R2*cos(radians(d/5))) for d in range(0,360*5+1)]], materialnumber=1)
 
-# optimize for the X parameters using 2 different methods
-k0 = OptimizeXagainstR2(X0, outerdisksamples, R2, 'Nelder-Mead')
-k1 = OptimizeXagainstR2(X0, outerdisksamples, R2, 'Powell')
-
-ptsouter0 = [ procforward(j0, j1, k0[0])  for j0, j1 in outerdisksamples ]
-sendactivity("points", points=ptsouter0, materialnumber=1)
-PlotCircularity(ptsouter0)
-
-ptsouter1 = [ procforward(j0, j1, k1[0])  for j0, j1 in outerdisksamples ]
-sendactivity("points", points=ptsouter1, materialnumber=2)
-PlotCircularity(ptsouter1)
-
-# read the line sampling file
+# read the straight rule line sampling file, to add into the optimization function
 linsamplelines, lincontactsequences = GetContactSequence(fnamelin)
 linearsamples = [ (float(linsamplelines[i0][0]), float(linsamplelines[i0][1]))  for i0, i1 in lincontactsequences ]
 
-ptslin0 = [ procforward(j0, j1, k0[0])  for j0, j1 in linearsamples ]
-sendactivity("points", points=ptslin0, materialnumber=1)
-ptslin1 = [ procforward(j0, j1, k1[0])  for j0, j1 in linearsamples ]
-sendactivity("points", points=ptslin1, materialnumber=2)
-
-pts =ptslin0
-
-def BestLineFit(pts):
-    sx = sum(x  for x, y in pts)
-    sy = sum(y  for x, y in pts)
-    sx2 = sum(x**2  for x, y in pts)
-    sxy = sum(x*y  for x, y in pts)
-    m = (sxy*len(pts) - sx*sy) / (sx2*len(pts) - sx**2)
-    c = (sy - m*sx)/len(pts)
-    sendactivity("contours", contours=[[(x, m*x+c)  for x in [-1000, 1000]]])
-    nveclen = sqrt(m**2 + 1)
-    nvec = (m/nveclen, -1/nveclen)
-    nvecdots = [ nvec[0]*x + nvec[1]*y  for x, y in pts ]
-    print("linear width is ", max(nvecdots) - min(nvecdots))
-    
-BestLineFit(ptslin0)
-BestLineFit(ptslin1)
+ffff
+print("Introducing fac745 =", fac745, "to force X[0:3] to be 745")
+sendactivity("clearalltriangles")
+sendactivity("clearallpoints")
+sendactivity("clearallcontours")
+X = OptMeth(X0, 'Nelder-Mead')
+print(X)
+X = OptMeth(X0, 'Powell')
+print(X)
     
     
-    
-    cx0, cy0 = sum(x  for x, y in pts)/len(pts), sum(y  for x, y in pts)/len(pts)
-    def centrequality(c):
-        dss = [ sqrt((c[0] - x)**2 + (c[1] - y)**2)  for x, y in pts ]
-        return sum((d - R2)**2  for d in dss)/len(pts)
-    b = 5
-    bnds = ((cx0-b,cx0+b), (cy0-b,cy0+b))
-    res = scipy.optimize.minimize(fun=centrequality, x0=(cx0, cy0), bounds=bnds)
-    return tuple(res.x), centrequality(res.x)
-
-
-
-
-print("""
-void setupconstants(struct arcdata_data *hd) 
-{
-    hd->a = %f; 
-    hd->b = %f; 
-    hd->c = %f; 
-    hd->d = %f; 
-    hd->e = %f; 
-    hd->f = %f; 
-    hd->ah = %f; 
-    hd->tblx = %f; 
-    hd->armx = %f; 
-}""" % Xopt)
-
-j0s = [cs.getselj0()  for cs in contactsequencedisks[2]]
-j1s = [cs.getselj1()  for cs in contactsequencedisks[2]]
-j0min, j0max = min(j0s), max(j0s)
-j1min, j1max = min(j1s), max(j1s)
-nstripes = 10
-X = Xopt
-sendactivity("contours", contours=[[ procforward(j0min + (j/nstripes)*(j0max - j0min), j1min + (i/100)*(j1max - j1min), X, diskcen)  for i in range(100) ]  for j in range(nstripes)], materialnumber=matnumber)
-sendactivity("contours", contours=[[ procforward(j0min + (j/100)*(j0max - j0min), j1min + (i/nstripes)*(j1max - j1min), X, diskcen)  for j in range(100) ]  for i in range(nstripes)], materialnumber=matnumber)
-
