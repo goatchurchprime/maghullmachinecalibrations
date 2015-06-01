@@ -104,25 +104,25 @@ class HalData:
         self.tblx = 525.4558306022; 
         self.armx = 396.1544040232; 
 
-        self.ab = abanglefromtriangleabc(a, b, c); 
-        self.ac = abanglefromtriangleabc(a, c, b); 
+        self.ab = abanglefromtriangleabc(self.a, self.b, self.c) 
+        self.ac = abanglefromtriangleabc(self.a, self.c, self.b) 
 
     def jointstoxy(self, joint):
-        tbl = joint[0] + self.tblx;
-        arm = joint[1] + self.armx;
+        tbl = joint[0] + self.tblx
+        arm = joint[1] + self.armx
 
-        aTBL = abanglefromtriangleabc(self.b, self.d, tbl); 
-        aARM = abanglefromtriangleabc(self.c, self.e, arm); 
+        aTBL = abanglefromtriangleabc(self.b, self.d, tbl)
+        aARM = abanglefromtriangleabc(self.c, self.e, arm) 
         
         avec = self.ab - aTBL; 
-        pvec = avec + self.ac - aARM + self.ah; 
+        pvec = avec + self.ac - aARM + self.ah 
 
         return (0      - self.a*sin(avec) + self.f*sin(pvec),  
                 self.d - self.a*cos(avec) + self.f*cos(pvec))
 
     def xytojoints(self, tran):
         gx = tran[0]
-        gy = tran[1] - self.d;
+        gy = tran[1] - self.d
         g = sqrt(gx*gx + gy*gy)
         
         avec = abanglefromtriangleabc(self.a, g, self.f) - atan2(gx, -gy) 

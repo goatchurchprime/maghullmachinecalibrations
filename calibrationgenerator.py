@@ -11,28 +11,31 @@ except NameError:
 fname = "/home/goatchurch/geom3d/maghullmachinecalibrations/data/probing2015-05-22a.txt"
 
 
-X0 = (744.57703517328832, 746.19009986079459, 741.95547170764314, 695.42905812855656, 693.07538973655983, 582.64403220610257, 121.47172501846239, 690, 400)
+X0 = (744.57703517328832, 746.19009986079459, 741.95547170764314, 695.42905812855656, 693.07538973655983, 582.64403220610257, 0.0764480526, 690, 400)
+#X0 = (743.3133003594869, 756.82976800937217, 743.43834112653599, 698.16794077213683, 688.61101385919824, 580.7463415098855, 0.097855119579137784, 518.65650220023929, 408.6731700849632)
 
 halsampleHz = 1000
 Nmergablegap = 160  # when finding samples in contact
 aXoffset = 0#-0.4837
 
-def procforward(lj0, lj1, X):
-    a, b, c, d, e, f, h, tblx, armx = X
-    j0, j1 = lj0 + tblx, lj1 + armx
-    aB = acos(((a**2)+(c**2)-(b**2))/(2*a*c))
-    aC = acos(((a**2)+(b**2)-(c**2))/(2*a*b))
-    aH = acos(((f*f)+(e*e)-(h*h))/(2*f*e))
-    aTBL = acos(((d*d)+(b*b)-(j0*j0))/(2*d*b))
-    aARM = acos(((c*c)+(e*e)-(j1*j1))/(2*c*e))
-    aG = aB-aARM+aH
-    aF = atan((f*(sin(aG)))/(a-(f*(cos(aG)))))
-    aX = aTBL-(aC-aF)+aXoffset
-    g = sqrt((f*f)+(a*a)-(2*f*a*(cos(aG))))
-    x = g*sin(aX)
-    y = -g*cos(aX)
-    return x, y
+def abanglefromtriangleabc(a, b, c):
+    return acos((a*a + b*b - c*c)/(2*a*b)) 
+def procforward(j0, j1, X, diskcen=(0,0)):
+    a, b, c, d, e, f, ah, tblx, armx = X
+    ab = abanglefromtriangleabc(a, b, c) 
+    ac = abanglefromtriangleabc(a, c, b) 
+    tbl = j0 + tblx
+    arm = j1 + armx
 
+    aTBL = abanglefromtriangleabc(b, d, tbl)
+    aARM = abanglefromtriangleabc(c, e, arm) 
+
+    avec = ab - aTBL 
+    pvec = avec + ac - aARM + ah 
+
+    dx, dy = diskcen
+    return (0 - a*sin(avec) + f*sin(pvec) - dx,  
+            d - a*cos(avec) + f*cos(pvec) - dy)
 
 class ContactSequence:
     def __init__(self, i, sampleline, nprevgap, N):
@@ -112,6 +115,7 @@ print([cs.N  for cs in contactsequences])
 print([cs.lng  for cs in contactsequences])
 contactsequences = contactsequences[1::2]
 
+
 for cs in contactsequences:  
     cs.dmid = sqrt((cs.pts[cs.isel][0] - midx)**2 + (cs.pts[cs.isel][1] - midy)**2)
 dmids = [ cs.dmid  for cs in contactsequences ]
@@ -168,27 +172,29 @@ def ApplyRadialFactor(cx, cy, r, p, radialfactor):
     vfac = (vlen - r)*radialfactor / r
     return p[0] + vx*vfac, p[1] + vy*vfac
         
-def PlotCircles(X, radialfactor):
+def PlotCircles(X, radialfactor, diskcen=(0,0), matnumber=0):
+    dx, dy = diskcen
     for i in range(len(contactsequencedisks)):
         pts = [ procforward(cs.getselj0(), cs.getselj1(), X)  for cs in contactsequencedisks[i]]
         print("Disk %d points %d" % (i, len(contactsequencedisks[i])), end=" ")
-        sendactivity("points", points=pts, materialnumber=i)
+        sendactivity("points", points=[(x-dx, y-dy)  for x, y in pts], materialnumber=(matnumber+i)%4)
         cx, cy = BestCentre(pts)
-        sendactivity("points", points=[(cx, cy)], materialnumber=i)
+        sendactivity("points", points=[(cx-dx, cy-dy)], materialnumber=(matnumber+i)%4)
         rC, sdC = radsd((cx, cy), pts)
         rmin, rmax = radrg((cx, cy), pts)
         print("Centre (%f,%f) minrad %f maxrad %f" % (cx, cy, rmin, rmax))
-        sendactivity("contours", contours=[[(cx+rC*sin(radians(d/5)), cy+rC*cos(radians(d/5))) for d in range(0,360*5+1)]], materialnumber=1)
-        if radialfactor:
-            sendactivity("contours", contours=[ [ ApplyRadialFactor(cx, cy, rC, procforward(float(sampleline[0]), float(sampleline[1]), X), radialfactor)  for sampleline in cs.samplelines ]  for cs in contactsequencedisks[i] ])
+        sendactivity("contours", contours=[[(cx+rC*sin(radians(d/5))-dx, cy+rC*cos(radians(d/5))-dy) for d in range(0,360*5+1)]], materialnumber=matnumber)
+        #if radialfactor:
+        #    sendactivity("contours", contours=[ [ ApplyRadialFactor(cx, cy, rC, procforward(float(sampleline[0]), float(sampleline[1]), X), radialfactor)  for sampleline in cs.samplelines ]  for cs in contactsequencedisks[i] ])
             
 
-# plot with current parameters    
+
 sendactivity("clearalltriangles")
 sendactivity("clearallpoints")
 sendactivity("clearallcontours")
-sendactivity("contours", contours=[cs.pts  for cs in contactsequences])
+sendactivity("points", points=[cs.pts[0]  for cs in contactsequences])
 PlotCircles(X0, 100)
+
 
 # now minimize on the main set of parameters
 def fun(X):
@@ -214,73 +220,46 @@ print("Initial fun to minimize value", fun(X0))
 #res = scipy.optimize.minimize(fun=fun, x0=x0, method='Powell', options={"xtol":0.00000001, "ftol":0.00000001})
 tstart = time.time()
 bnds = [ (x-5,x+5)  for x in X0 ]
-res = scipy.optimize.minimize(fun=fun, x0=X0, bounds=bnds, method='Powell', options={"xtol":0.00000001, "ftol":0.00000001})
+
+
+
+method, matnumber = 'Nelder-Mead', 3
+method, matnumber = 'Powell', 1
+
+# 'Nelder-Mead' - 'Powell' - 'CG' - 'BFGS' - 'L-BFGS-B' - 'TNC' - 'COBYLA' - 'SLSQP' - 'dogleg' - 'trust-ncg'
+res = scipy.optimize.minimize(fun=fun, x0=X0, bounds=bnds, method=method, options={"xtol":0.00000001, "ftol":0.00000001})
 print("Elapsed seconds", time.time() - tstart)
 print(res)
 Xopt = tuple(res.x)
+X = Xopt
+diskcen = BestCentreR2([ procforward(cs.getselj0(), cs.getselj1(), X)  for cs in contactsequencedisks[2] ], R2)
 
 print("error %f for %s" % (fun(X0), repr(X0)))
 print("error %f for %s" % (fun(Xopt), repr(Xopt)))
-PlotCircles(Xopt, 1)
-sendactivity("clearallpoints")
+PlotCircles(Xopt, 1, diskcen, matnumber)
 
 
-# numbers from the original mk6skins.c file, with h back-calculated to match aH
-#X00 = (744.942619, 746.50577, 743.340584, 695.063413, 692.996544, 582.632544, 121.49303499999954)
-#a, b, c, d, e, f, h = X00
-a, b, c, d, e, f, h, tblx, armx = Xopt
-
-print("Code to paste into mk6skins.c:\n")
-print("#define DEFAULT_A %.10f" % a)
-print("#define DEFAULT_B %.10f" % b)
-print("#define DEFAULT_C %.10f" % c)
-print("#define DEFAULT_D %.10f" % d)
-print("#define DEFAULT_E %.10f" % e)
-print("#define DEFAULT_F %.10f" % f)
-print("#define DEFAULT_TBLX %.10f" % tblx)
-print("#define DEFAULT_ARMX %.10f" % armx)
-aB = acos(((a**2)+(c**2)-(b**2))/(2*a*c))
-aC = acos(((a**2)+(b**2)-(c**2))/(2*a*b))
-aH = acos(((f*f)+(e*e)-(h*h))/(2*f*e))
-print("#define DEFAULT_AB %.10f" % aB)
-print("#define DEFAULT_AC %.10f" % aC)
-print("#define DEFAULT_AH %.10f" % aH)
+print("""
+void setupconstants(struct arcdata_data *hd) 
+{
+    hd->a = %f; 
+    hd->b = %f; 
+    hd->c = %f; 
+    hd->d = %f; 
+    hd->e = %f; 
+    hd->f = %f; 
+    hd->ah = %f; 
+    hd->tblx = %f; 
+    hd->armx = %f; 
+}""" % Xopt)
 
 
-
-# case for testing against the rule
-def dotsd(v, pts):
-    n = len(pts)
-    ds = [ v[0]*x + v[1]*y  for x, y in pts ]
-    sumdls = sum(ds)
-    sumdsqs = sum(d**2  for d in ds)
-    return sumdls/n, sqrt(max(0, sumdsqs*n - sumdls**2))/(n-1)
-
-def Dvl(v, dv):
-    vx, vy = v[1] + v[0]*dv, -v[0] + v[1]*dv
-    vlen = sqrt(vx**2 + vy**2)
-    return vx/vlen, vy/vlen
-
-
-def BestLine(pts):
-    vx0 = pts[-1][0] - pts[0][0]
-    vy0 = pts[-1][1] - pts[0][1]
-    def fun(dv):
-        return dotsd(Dvl((vx0, vy0), dv), pts)[1]
-    b = 0.5
-    bnds = ((-b,+b),)
-    res = scipy.optimize.minimize(fun=fun, x0=(0,), bounds=bnds)
-    print(res)
-    return Dvl((vx0, vy0), res.x[0])
-
-if 0:
-    X0 = (744.57703517328832, 746.19009986079459, 741.95547170764314, 695.42905812855656, 693.07538973655983, 582.64403220610257, 121.47172501846239, -5.3500253291260549, -0.33991271271317969)
-    pts0 = [ procforward(cs.getselj0(), cs.getselj1(), X0)  for cs in contactsequences ]
-    sendactivity("points", points=pts0, materialnumber=0)
-    for pts in [pts0, pts1, pts2]:
-        vx, vy = BestLine(pts)
-        d, sd = dotsd((vx, vy), pts)
-        print("sd", sd)
-        sendactivity("contours", contours=[[(vx*d-vy*1000, vy*d+vx*1000), (vx*d+vy*1000, vy*d-vx*1000)]])
-        print(vx**2+vy**2)
+j0s = [cs.getselj0()  for cs in contactsequencedisks[2]]
+j1s = [cs.getselj1()  for cs in contactsequencedisks[2]]
+j0min, j0max = min(j0s), max(j0s)
+j1min, j1max = min(j1s), max(j1s)
+nstripes = 10
+X = Xopt
+sendactivity("contours", contours=[[ procforward(j0min + (j/nstripes)*(j0max - j0min), j1min + (i/100)*(j1max - j1min), X, diskcen)  for i in range(100) ]  for j in range(nstripes)], materialnumber=matnumber)
+sendactivity("contours", contours=[[ procforward(j0min + (j/100)*(j0max - j0min), j1min + (i/nstripes)*(j1max - j1min), X, diskcen)  for j in range(100) ]  for i in range(nstripes)], materialnumber=matnumber)
 
