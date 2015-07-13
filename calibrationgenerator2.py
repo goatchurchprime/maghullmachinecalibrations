@@ -178,4 +178,4 @@ print(X)
 X = OptMeth(X0, 'Powell')
 print(X)
     
-    
+print("void setupconstants(struct arcdata_data *hd)\n{\r\n%s\r\n}" % "\r\n".join("    hd->%s = %f;" % (s, v)  for s, v in zip(("a", "b", "c", "d", "e", "f", "ah", "tblx", "armx"), X)))
