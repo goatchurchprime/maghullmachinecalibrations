@@ -109,7 +109,7 @@ def fun2(X):
 
 # another good convergence due to small number of unknowns solved
 # but needs at least 3 radii of table swings to work
-res = scipy.optimize.minimize(fun=fun2, x0=(Cb, 0.1), method='Nelder-Mead', options={"xtol":0.00000001, "ftol":1e-20, "maxiter":9000})
+res = scipy.optimize.minimize(fun=fun2, x0=(Cc, 0.1), method='Nelder-Mead', options={"xtol":0.00000001, "ftol":1e-20, "maxiter":9000})
 Ca, Cacah = res.x
 print("a:", Ca, "from", Fa)
 print("acah:", Cacah, "from", Facah)
