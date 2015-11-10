@@ -16,12 +16,12 @@ struct arcdata_data {
 
 double abanglefromtriangleabc(double a, double b, double c)
 {
-    return acos((a*a + b*b - c*c)/(2*a*b)); 
+    return rtapi_acos((a*a + b*b - c*c)/(2*a*b)); 
 }
 
 double clengthfromtriangleabangle(double a, double b, double ang)
 {
-    return sqrt(a*a + b*b - 2*a*b*cos(ang)); 
+    return rtapi_sqrt(a*a + b*b - 2*a*b*rtapi_cos(ang)); 
 }
 
 
@@ -37,7 +37,6 @@ void setupconstants(struct arcdata_data *hd)
     hd->ah = 0.076911;
     hd->tblx = 512.306840;
     hd->armx = 387.685268;
-    hd->rotrad = 0;
 //    hd->rotrad = (30+18.18-2.9827809887062742)/180.0*3.1415926535;
     hd->rotrad = (30+90+14.196)/180.0*3.1415926535;
 }
@@ -68,12 +67,12 @@ void jointstoxy(struct arcdata_data* hd, const double* joint, EmcPose* world)
     avec = hd->ab - aTBL; 
     pvec = avec + hd->ac - aARM + hd->ah; 
 
-    world->tran.x =     0 - hd->a*sin(avec) + hd->f*sin(pvec); 
-    world->tran.y = hd->d - hd->a*cos(avec) + hd->f*cos(pvec); 
+    world->tran.x =     0 - hd->a*rtapi_sin(avec) + hd->f*rtapi_sin(pvec); 
+    world->tran.y = hd->d - hd->a*rtapi_cos(avec) + hd->f*rtapi_cos(pvec); 
 
-    if (hd->rotrad != 0) {
-        double sinr = sin(hd->rotrad); 
-        double cosr = cos(hd->rotrad); 
+    if (hd->rotrad) {
+        double sinr = rtapi_sin(hd->rotrad); 
+        double cosr = rtapi_cos(hd->rotrad); 
         double x = world->tran.x*cosr + world->tran.y*sinr; 
         double y = world->tran.y*cosr - world->tran.x*sinr; 
         world->tran.x = x; 
@@ -98,18 +97,18 @@ void xytojoints(struct arcdata_data* hd, const EmcPose* world, double* joint)
 
     gx = world->tran.x;
     gy = world->tran.y; 
-    if (hd->rotrad != 0) {
-        double sinr = sin(hd->rotrad); 
-        double cosr = cos(hd->rotrad); 
+    if (hd->rotrad) {
+        double sinr = rtapi_sin(hd->rotrad); 
+        double cosr = rtapi_cos(hd->rotrad); 
         gx = world->tran.x*cosr - world->tran.y*sinr; 
         gy = world->tran.y*cosr + world->tran.x*sinr; 
     }
 
     gy = gy - hd->d;
-    g = sqrt(gx*gx + gy*gy);  // line from corner ab to p
+    g = rtapi_sqrt(gx*gx + gy*gy);  // line from corner ab to p
 
     // consider a vertical line through corner ab, splitting angle ag and parallel to vertical line through corner af. use parallel axiom
-    avec = abanglefromtriangleabc(hd->a, g, hd->f) - atan2(gx, -gy); 
+    avec = abanglefromtriangleabc(hd->a, g, hd->f) - rtapi_atan2(gx, -gy); 
     af = abanglefromtriangleabc(hd->a, hd->f, g); 
     pvec = avec + af; 
     aTBL = hd->ab - avec; 
@@ -208,19 +207,46 @@ KINEMATICS_TYPE kinematicsType()
 EXPORT_SYMBOL(kinematicsType);
 EXPORT_SYMBOL(kinematicsForward);
 EXPORT_SYMBOL(kinematicsInverse);
-int comp_id;
+
+MODULE_LICENSE("GPL");
+
+#define VTVERSION VTKINEMATICS_VERSION1
+
+static vtkins_t vtk = {
+    .kinematicsForward = kinematicsForward,
+    .kinematicsInverse  = kinematicsInverse,
+    // .kinematicsHome = kinematicsHome,
+    .kinematicsType = kinematicsType
+};
+
+
+int comp_id, vtable_id;
+const char *name = "mk6skins";
 
 int rtapi_app_main(void) {
-    comp_id = hal_init("mk6skins");
+    comp_id = hal_init(name);
     if(comp_id < 0) {
         return comp_id;
     }
 
+    vtable_id = hal_export_vtable(name, VTVERSION, &vtk, comp_id);
+
+    if(vtable_id < 0) {
+        rtapi_print_msg(RTAPI_MSG_ERR,
+                        "%s: ERROR: hal_export_vtable(%s,%d,%p) failed: %d\n",
+                        name, name, VTVERSION, &vtk, vtable_id );
+        return -ENOENT;
+    }
+        
     haldata = hal_malloc(sizeof(struct arcdata_data));
     setupconstants(haldata); 
     setupprecalcs(haldata); // should be called in case a value is changed from the hal_param system below
 
     if (hal_param_s32_new("kins-btrivial", HAL_RW, &(haldata->btrivial), comp_id) < 0){
+        rtapi_print("failed to make pin");
+        return -EINVAL;
+    }
+    if (hal_param_float_new("kins-rotrad", HAL_RW, &(haldata->rotrad), comp_id) < 0){
         rtapi_print("failed to make pin");
         return -EINVAL;
     }
@@ -272,8 +298,7 @@ int rtapi_app_main(void) {
     return 0;
 }
 
-void rtapi_app_exit(void) { hal_exit(comp_id); }
-
-
-
-
+void rtapi_app_exit(void) { 
+    hal_remove_vtable(vtable_id);
+    hal_exit(comp_id); 
+}
