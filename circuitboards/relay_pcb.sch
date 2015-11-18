@@ -1,0 +1,180 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:special
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:w_relay
+EELAYER 27 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date "12 nov 2015"
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L CONN_2 P2
+U 1 1 56447605
+P 4050 3350
+F 0 "P2" H 4050 3350 40  0000 C CNN
+F 1 "CONN_2" H 4100 3300 40  0001 C CNN
+F 2 "" H 4050 3350 60  0000 C CNN
+F 3 "" H 4050 3350 60  0000 C CNN
+	1    4050 3350
+	-1   0    0    1   
+$EndComp
+$Comp
+L RELAY_RT1 RLY1
+U 1 1 56447F4C
+P 5050 3700
+F 0 "RLY1" H 5050 3450 60  0000 C CNN
+F 1 "RT1" V 5000 3400 60  0001 C CNN
+F 2 "" H 5050 3700 60  0000 C CNN
+F 3 "" H 5050 3700 60  0000 C CNN
+	1    5050 3700
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_2 P1
+U 1 1 56447F7A
+P 5050 2850
+F 0 "P1" V 5050 2850 40  0000 C CNN
+F 1 "CONN_2" V 5100 2850 40  0001 C CNN
+F 2 "" H 5050 2850 60  0000 C CNN
+F 3 "" H 5050 2850 60  0000 C CNN
+	1    5050 2850
+	0    -1   -1   0   
+$EndComp
+$Comp
+L CONN_3X2 P3
+U 1 1 56447F94
+P 4050 3750
+F 0 "P3" H 4050 3800 50  0000 C CNN
+F 1 "CONN_3X2" H 4050 3800 40  0001 C CNN
+F 2 "" H 4050 3750 60  0000 C CNN
+F 3 "" H 4050 3750 60  0000 C CNN
+	1    4050 3750
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_6 P4
+U 1 1 56447FAB
+P 5000 4450
+F 0 "P4" V 5000 4450 60  0000 C CNN
+F 1 "CONN_6" V 5050 4450 60  0001 C CNN
+F 2 "" H 5000 4450 60  0000 C CNN
+F 3 "" H 5000 4450 60  0000 C CNN
+	1    5000 4450
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	4400 3250 5300 3250
+Wire Wire Line
+	5150 3250 5150 3200
+Wire Wire Line
+	4950 3450 4950 3200
+Wire Wire Line
+	4400 3450 4950 3450
+Wire Wire Line
+	4750 3950 5300 3950
+Wire Wire Line
+	4750 3950 4750 4100
+Connection ~ 5150 3250
+Wire Wire Line
+	4950 4100 4950 3950
+Connection ~ 4950 3950
+Wire Wire Line
+	5150 4100 5150 3950
+Connection ~ 5150 3950
+Wire Wire Line
+	4850 4100 4850 4050
+Wire Wire Line
+	4850 4050 5350 4050
+Wire Wire Line
+	5250 4050 5250 4100
+Connection ~ 5250 4050
+Wire Wire Line
+	5050 4050 5050 4100
+Connection ~ 5050 4050
+NoConn ~ 3650 3600
+NoConn ~ 3650 3700
+NoConn ~ 3650 3800
+NoConn ~ 4450 3800
+$Comp
+L DIODE D1
+U 1 1 56447F6B
+P 4600 3700
+F 0 "D1" V 4600 3600 40  0000 C CNN
+F 1 "DIODE" H 4600 3600 40  0001 C CNN
+F 2 "~" H 4600 3700 60  0000 C CNN
+F 3 "~" H 4600 3700 60  0000 C CNN
+	1    4600 3700
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	4450 3600 4450 3500
+Wire Wire Line
+	4450 3500 4700 3500
+Wire Wire Line
+	4700 3500 4700 3900
+Wire Wire Line
+	4700 3900 5250 3900
+Wire Wire Line
+	5250 3900 5250 3850
+Connection ~ 4600 3500
+Wire Wire Line
+	4650 3850 4850 3850
+Wire Wire Line
+	4650 3900 4650 3850
+Wire Wire Line
+	4500 3900 4650 3900
+Wire Wire Line
+	4500 3900 4500 3700
+Wire Wire Line
+	4500 3700 4450 3700
+Connection ~ 4600 3900
+Wire Wire Line
+	5300 3950 5300 3250
+Wire Wire Line
+	4800 3450 4800 3550
+Wire Wire Line
+	4800 3550 4850 3550
+Connection ~ 4800 3450
+Wire Wire Line
+	5250 3600 5350 3600
+Wire Wire Line
+	5350 3600 5350 4050
+NoConn ~ 4850 3650
+$EndSCHEMATC

@@ -1,3 +1,5 @@
+# need to copy over my probing file off the BB on the machine
+
 import re, os
 
 fdir = "/home/goatchurch/geom3d/flatcam/adrianscircuitdoorbot/"
@@ -26,13 +28,11 @@ max(p[2]  for p in probepts)
 def probez(x, y):
     return min(probepts, key=lambda X:abs(X[0]-x)+abs(X[1]-y))[2]
 
-import math
-0.375+math.atan(4.13/55.9)+math.pi*0.5
-
 # do probing
 fin = open(os.path.join(fdir, fn))
 fout = open(os.path.join(fdir, fns), "w")
 pos = { "X":xlo, "Y":ylo, "Z":zhi }
+conts = [ [] ]
 for l in fin:
     m = re.search("(([XYZ][\-\d\.]+)+)", l)
     if not m:
@@ -45,9 +45,14 @@ for l in fin:
     if pos["Z"] == -0.1:
         ml = "X%.4fY%.4fZ%.4f" % (pos["X"], pos["Y"], probez(pos["X"], pos["Y"])+zlo)
         fout.write(l[:m.start(0)]+ml+l[m.end(0):])
+        conts[-1].append((pos["X"], pos["Y"]))
     else:
         fout.write(l)
+        if conts[-1]:
+            conts.append([])
 fout.close()
 fin.close()
-
+sendactivity(contours=conts)
+sendactivity(points=[cont[0]  for cont in conts  if cont])
+sendactivity(points=[cont[-1]  for cont in conts  if cont])
         
