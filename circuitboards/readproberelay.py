@@ -18,6 +18,7 @@ zlo, zhi = -0.15, 2
 
 #G92X195Y-185
 #setp kins-rotrad 1.993
+150, -340
 
 fin = open(os.path.join(fdir, "probing5.txt"))
 probepts = [ list(map(float, l.split()[:3]))  for l in fin ]
