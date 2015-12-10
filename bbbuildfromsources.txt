@@ -1,0 +1,78 @@
+# Make the original SD card
+
+Machinekit images page: http://blog.machinekit.io/p/machinekit_16.html
+links to microSD standalone: http://elinux.org/Beagleboard:BeagleBoneBlack_Debian#BBW.2FBBB_.28All_Revs.29_Machinekit
+
+wget https://rcn-ee.com/rootfs/bb.org/testing/2015-12-07/machinekit/bone-debian-7.9-machinekit-armhf-2015-12-07-4gb.img.xz
+//wget http://www.machinekit.net/deb/rootfs/wheezy/debian-7.4-machinekit-armhf-2014-05-19-4gb.img.xz
+sha256sum bone...
+
+Put in SD card into computer
+sudo fdisk -l to find which /dev value it is
+xzcat bone-debian-7.9-machinekit-armhf-2015-12-07-4gb.img.xz | sudo dd bs=1024 of=/dev/mmcblk0
+
+plug into BB and reboot several times till it starts working and you can ping 192.168.7.2
+
+
+
+# Connect the BB to the internet through the host computer
+
+From http://askubuntu.com/questions/380810/internet-over-usb-on-beaglebone-black
+
+on BB:
+
+sudo bash
+ifconfig usb0 192.168.7.2
+route add default gw 192.168.7.1
+
+
+on PC:
+
+sudo bash
+ifconfig enx84eb18bb4408 192.168.7.1 (taken from ifconfig)
+iptables --table nat --append POSTROUTING --out-interface wlan0 -j MASQUERADE
+iptables --append FORWARD --in-interface eth2 -j ACCEPT
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+on BB:
+
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+(may need to edit out junk lines from resolv.conf)
+
+# Install packages for compiling code
+
+Login machinekit@192.168.7.2  password: machinekit
+sudo date --set="20151210 15:40"
+
+Follow instructions on here:  http://www.machinekit.io/docs/building-from-source/
+
+involves downloading modules from wheezy
+
+apt-get update
+apt-get install  libudev-dev libmodbus-dev libboost-python-dev  libusb-1.0-0-dev
+apt-get install  libboost-serialization-dev libboost-thread-dev
+
+./configure
+make
+sudo make setuid
+
+
+# Including the joint conversions
+
+. scripts/rip-environment
+comp --install linuxcnc/configs/mk6/mk6kins.c
+
+copy mk7_bbb_pcb.hal  mk7_bbb_pcb.ini custom.hal  custom_postgui.hal to the machinekit directory
+
+. scripts/rip-environment
+machinekit mk7_bbb_pcb.ini
+
+# position
+
+x50y-329 -> g92x0y0
+
+touchpad at x-70y0 -> g92z0
+return to x0y0
+g92z10
+
+

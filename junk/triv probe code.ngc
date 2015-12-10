@@ -1,0 +1,41 @@
+#<_zsafe>=55   #<_zwork>=32  #<_incs>=10
+#<_xmax>=99.4  #<_xmid>=-78  #<_xmin>=-297
+#<_ymax>=86  #<_ymid>=-65  #<_ymin>=-213               (ymid not used)
+#<_yinc>=[[#<_ymax>-#<_ymin>]/#<_incs>] 
+#<_xinc>=[[#<_xmax>-#<_xmin>]/#<_incs>]                (xinc not used)
+(PROBEOPEN /home/ag/Desktop/trivlog 19 6 15.txt)
+
+G0 Z #<_zsafe>                                         (up)
+#<_ypos>=[#<_ymin>-#<_yinc>]                           (pre-looping value for y)
+
+O1 while [#<_ypos> LT #<_ymax>]                        (y increment loop)
+	#<_ypos>=[#<_ypos>+#<_yinc>]                     (new y value)
+	G1 X#<_xmin> Y#<_ypos> F500                      (move to start)
+	G1 Z #<_zwork>                                   (down)
+	G38.2 X#<_xmid> Y#<_ypos> F300                   (move towards disc)
+        G91 G1 X -0.2                                     (relative backaway)
+        G90 G38.2 X#<_xmid> Y#<_ypos>  F2                (move slow towards disc)
+	G1 X#<_xmin> Y#<_ypos> F500                      (reverse back to start)
+	(LOG, X#5061 Y#5062)                             (log probed coords)
+O1 endwhile
+
+G0 Z #<_zsafe>                                         (up)
+#<_ypos>=[#<_ymin>-#<_yinc>]                           (pre-looping value for y)
+
+O2 while [#<_ypos> LT #<_ymax>]                        (y increment loop)
+	#<_ypos>=[#<_ypos>+#<_yinc>]                     (new y value)
+	G1 X#<_xmax> Y#<_ypos> F500                      (move to start)
+	G1 Z #<_zwork>                                   (down)
+	G38.2 X#<_xmid> Y#<_ypos> F300                   (move towards disc)
+        G91 G1 X 0.2                                      (relative backaway)
+        G90 G38.2 X#<_xmid> Y#<_ypos> F2                 (move slow towards disc)
+	G1 X#<_xmax> Y#<_ypos> F500                      (reverse back to start)
+	(LOG, X#5061 Y#5062)                             (log probed coords)
+O2 endwhile
+(PROBECLOSE)
+G0 Z #<_zsafe>                                         (up)
+M2
+%
+;numbered - #4711
+;named local - #<localvalue>
+;named global - #<_globalvalue>
