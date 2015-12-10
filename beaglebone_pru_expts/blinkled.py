@@ -4,7 +4,7 @@ pid, sts = os.waitpid(p.pid, 0)
 
 # git clone https://bitbucket.org/intelligentagent/pypruss.git 
 # cd pypruss
-# python setup.py install
+# sudo python setup.py install
 # export LD_LIBRARY_PATH=/usr/local/lib
 # do this on the command line at start up if the device needs to be enbabled
 #    echo BB-BONE-PRU-01 > /sys/devices/bone_capemgr.9/slots
