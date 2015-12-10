@@ -6,6 +6,9 @@ GPIO1_offset = 0x4804c000
 GPIO1_size = 0x4804cfff-GPIO1_offset
 USR1 = 1<<28   # for pin P9_28
 
+# LED will flash when connected between pin 12 (6 down in second column of 
+# left bank next to 5V socket) and pin 2 (top right) which is ground
+
 # values from p4877 section 25.4.1
 GPIO_OUTPUTENABLE = 0x134  
 GPIO_SETDATAOUT = 0x194
