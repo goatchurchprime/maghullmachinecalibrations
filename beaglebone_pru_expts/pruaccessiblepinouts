@@ -1,0 +1,19 @@
+Motor controlling pins from the HAL file.  The pin position is in comment, the number is unexplained so far
+
+RIGHTHAND P9
+P9.26 PRU1.out8   setp hpg.stepgen.02.steppin         46
+P9.24 PRU1.out9   setp hpg.stepgen.02.dirpin          47
+
+P9.31 PRU1.out2   setp hpg.stepgen.00.dirpin          142
+P9.29 PRU1.out4   setp hpg.stepgen.00.steppin         143
+
+P9.30 PRU1.out5   setp hpg.stepgen.01.steppin         144
+P9.28 PRU1.out6   setp hpg.stepgen.01.dirpin          145
+
+
+
+Quadrature A B index (wrong because of mode problems)
+P9.27 P9.42    P9.41
+P8.35 P8.33    P8.31
+P8.41 P8.42    P8.16
+
