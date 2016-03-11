@@ -6,11 +6,21 @@
 #include "rtapi_app.h"		/* RTAPI realtime module decls */
 #include "hal.h"
 
+//#define LOGGING 1   // comment out entirely if you don't want it; not just set to 0 
+
+#ifdef LOGGING
+#include <stdio.h>
+#endif
+
 struct arcdata_data {
     hal_s32_t btrivial; 
     hal_float_t a, b, c, d, e, f, ah, tblx, armx;
     hal_float_t ac, ab; 
-    hal_float_t rotrad; 
+    hal_float_t rotrad;
+#ifdef LOGGING
+    FILE* fout;  
+    hal_float_t fprevx, fprevy; 
+#endif
 };
 
 
@@ -39,6 +49,12 @@ void setupconstants(struct arcdata_data *hd)
     hd->armx = 387.685268;
 //    hd->rotrad = (30+18.18-2.9827809887062742)/180.0*3.1415926535;
     hd->rotrad = (30+90+14.196)/180.0*3.1415926535;
+
+#ifdef LOGGING
+    hd->fout = fopen("jointslogging.txt", "w"); 
+    hd->fprevx = 0; 
+    hd->fprevy = 0;
+#endif
 }
 
 void setupprecalcs(struct arcdata_data *hd) 
@@ -80,6 +96,7 @@ void jointstoxy(struct arcdata_data* hd, const double* joint, EmcPose* world)
     }
 
     world->tran.z = joint[2];
+    char x[100] = "hi there\n"; 
 }
 
 void xytojoints(struct arcdata_data* hd, const EmcPose* world, double* joint)
@@ -120,6 +137,14 @@ void xytojoints(struct arcdata_data* hd, const EmcPose* world, double* joint)
     joint[0] = tbl - hd->tblx;
     joint[1] = arm - hd->armx;
     joint[2] = world->tran.z;
+
+#ifdef LOGGING
+    if (hd->fout && ((world->tran.x != hd->fprevx) || (world->tran.y != hd->fprevy))) {
+        fprintf(hd->fout, "%f %f %f %f\n", world->tran.x, world->tran.y, joint[0], joint[1]); 
+        hd->fprevx = world->tran.x;
+        hd->fprevy = world->tran.y; 
+    }
+#endif
 }
 
 /* Python translation

@@ -60,7 +60,9 @@ sudo make setuid
 # Including the joint conversions
 
 . scripts/rip-environment
-comp --install linuxcnc/configs/mk6/mk6kins.c
+
+# recompile the conversion module if necessary
+sudo bin/comp --install mk6skins.c
 
 copy mk7_bbb_pcb.hal  mk7_bbb_pcb.ini custom.hal  custom_postgui.hal to the machinekit directory
 
@@ -71,8 +73,16 @@ machinekit mk7_bbb_pcb.ini
 
 x50y-329 -> g92x0y0
 
+G92x45y-345 -> g92x0y0
+        
 touchpad at x-70y0 -> g92z0
 return to x0y0
 g92z10
+
+
+# to connect to BB on the network, find with
+nmap -p22 192.168.0.255/24
+look for something that is open to get the ipnumber
+or nmap -p22 192.168.0.127/25 for recheck just the first 128 values
 
 
