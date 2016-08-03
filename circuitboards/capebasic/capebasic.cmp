@@ -1,0 +1,87 @@
+Cmp-Mod V01 Created by CvPcb (2013-jul-07)-stable date = Fri 04 Mar 2016 15:03:43 GMT
+
+BeginCmp
+TimeStamp = /564A03A1;
+Reference = C1;
+ValeurCmp = C;
+IdModule  = C1_elp;
+EndCmp
+
+BeginCmp
+TimeStamp = /564A0B24;
+Reference = C2;
+ValeurCmp = C;
+IdModule  = C1_elp;
+EndCmp
+
+BeginCmp
+TimeStamp = /564A21A5;
+Reference = P1;
+ValeurCmp = CONN_2;
+IdModule  = mkds_1,5-2;
+EndCmp
+
+BeginCmp
+TimeStamp = /56D985BC;
+Reference = P2;
+ValeurCmp = CONN_8;
+IdModule  = mkds_1,5-8;
+EndCmp
+
+BeginCmp
+TimeStamp = /56D98D90;
+Reference = P3;
+ValeurCmp = CONN_3X2;
+IdModule  = vasch_strip_3x2_elp;
+EndCmp
+
+BeginCmp
+TimeStamp = /56D98DA9;
+Reference = P4;
+ValeurCmp = CONN_3X2;
+IdModule  = vasch_strip_3x2_elp;
+EndCmp
+
+BeginCmp
+TimeStamp = /56D98DB8;
+Reference = P5;
+ValeurCmp = CONN_3X2;
+IdModule  = vasch_strip_3x2_elp;
+EndCmp
+
+BeginCmp
+TimeStamp = /5649DDD6;
+Reference = RR1;
+ValeurCmp = RR8;
+IdModule  = r_pack8_elp;
+EndCmp
+
+BeginCmp
+TimeStamp = /5649D004;
+Reference = SW1;
+ValeurCmp = SW_PUSH;
+IdModule  = C1_elp;
+EndCmp
+
+BeginCmp
+TimeStamp = /5649CF8A;
+Reference = U1;
+ValeurCmp = BEAGLEBONE;
+IdModule  = BEAGLEBONEBLACK_elp;
+EndCmp
+
+BeginCmp
+TimeStamp = /5649DB71;
+Reference = U2;
+ValeurCmp = 74LVC245;
+IdModule  = DIP-20_elp;
+EndCmp
+
+BeginCmp
+TimeStamp = /564A07FE;
+Reference = U3;
+ValeurCmp = 7404;
+IdModule  = DIP-14_elp;
+EndCmp
+
+EndListe
