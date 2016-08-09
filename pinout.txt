@@ -1,0 +1,44 @@
+Architype BB pinout:
+
+Current setup:
+
+P9.11   Estop               
+P9.13   Home            
+P9.15   Probe           
+P9.17   unused 245 input  
+P9.19   unused 245 input    
+P9.21   unused 245 input
+P9.24   X Step  HAL:47
+P9.26   Y Step  HAL:46
+P9.28   Z Step  HAL:145
+P9.29   Y Dir   HAL:143
+P9.30   X Dir   HAL:144
+P9.31   Z Dir   HAL:142
+
+P9.27 and P9.42 (eqep 0) go to 245 on current board, will need to go to 
+opto-couplers instead if used, leaving another two unused 245 inputs
+
+Future pins potentially required:
+
+Eqeps:
+
+P8.11   2 B
+P8.12   2 A
+P8.16   2 index
+P8.31   1 index
+P8.33   1 B         using for prupid testing
+P8.35   1 A         using for prupid testing
+P9.27   0 B
+P9.41   0 index
+P9.42   0 A
+
+Uart5 (for 485):
+   
+P8.37   Tx
+P8.38   Rx
+P8.39   Flow control
+
+Pwms:
+
+P9.42   prupid pwm  Needs to change if using pid on all three axis
+                    as it clashes with eqep 0
